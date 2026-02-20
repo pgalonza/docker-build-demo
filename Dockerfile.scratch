@@ -1,0 +1,16 @@
+FROM golang:1.26-alpine AS builder
+WORKDIR /app
+COPY go.mod main.go .
+RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o go-app .
+
+FROM scratch
+COPY <<EOF /etc/passwd
+root:x:0:0:root:/root:/sbin/nologin
+nonroot:x:65532:65532:nonroot:/home/nonroot:/sbin/nologin
+EOF
+USER nonroot
+WORKDIR /app
+COPY --from=builder /app/go-app .
+EXPOSE 8080
+CMD ["/app/go-app"]
